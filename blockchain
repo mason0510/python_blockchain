@@ -1,0 +1,68 @@
+pip install pyOpenSSL
+pip install flask
+pip install requests
+
+
+python blockchain.py 3000
+
+#查看当前区块链详细信息
+curl "http://localhost:3000/chain"
+{"chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536296820.6712275,"transactions":[]}],"length":1}
+
+#挖矿
+curl "http://localhost:3000/mine"
+{"index":2,"message":"new block forged","previous_hash":"8c90381887446fa7ef00e8ff4fa3820c67271caee9250a7311e64b5fd9ca5fba","proof":35293,"transactions":[{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]}
+
+#查看当前区块链详细信息
+curl "http://localhost:3000/chain"
+{"chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536296820.6712275,"transactions":[]},{"index":2,"previous_hash":"8c90381887446fa7ef00e8ff4fa3820c67271caee9250a7311e64b5fd9ca5fba","proof":35293,"timestamp":1536296905.7136853,"transactions":[{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]}],"length":2}
+
+#产生新的交易
+curl -X POST -H "Content-Type: application/json" -d '{ "sender":"0", "recipient": "f4eb4686d2314f7b926472390af4a8d8", "amount": 5}' "http://localhost:3000/transactions/new"
+{"message":"transaction will be add to blockchain 3"}
+
+#查看当前区块链详细信息
+{"chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536296820.6712275,"transactions":[]},{"index":2,"previous_hash":"8c90381887446fa7ef00e8ff4fa3820c67271caee9250a7311e64b5fd9ca5fba","proof":35293,"timestamp":1536296905.7136853,"transactions":[{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]}],"length":2}
+
+#挖矿
+curl "http://localhost:3000/mine"
+{"index":3,"message":"new block forged","previous_hash":"b6ea6eaf341b0d54a441d96487c1b6c939ed24152f1e3edb13f321d429be9c9a","proof":35089,"transactions":[{"amount":5,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"},{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]}
+
+#查看当前区块链详细信息
+{"chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536296820.6712275,"transactions":[]},{"index":2,"previous_hash":"8c90381887446fa7ef00e8ff4fa3820c67271caee9250a7311e64b5fd9ca5fba","proof":35293,"timestamp":1536296905.7136853,"transactions":[{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]},{"index":3,"previous_hash":"b6ea6eaf341b0d54a441d96487c1b6c939ed24152f1e3edb13f321d429be9c9a","proof":35089,"timestamp":1536297373.46994,"transactions":[{"amount":5,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"},{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]}],"length":3}
+
+
+
+再启动一个节点
+python blockchain.py 3001
+
+#并将节点连接入区块链
+curl -X POST -H "Content-Type: application/json"  -d '{ "nodes": ["http://localhost:3001/"] }' "http://localhost:3000/nodes/register"
+{"message":"new nodes have been added","total_nodes":["localhost:3001"]}
+
+#查看当前区块链详细信息
+curl "http://localhost:3001/chain"
+{"chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536297764.5623543,"transactions":[]}],"length":1}
+
+#同步和解决冲突，目前3000下面的链应该是最长的，所以同步后还是自身
+curl "http://localhost:3000/nodes/resolve"
+{"message":"our chain is authoritative","new_chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536296820.6712275,"transactions":[]},{"index":2,"previous_hash":"8c90381887446fa7ef00e8ff4fa3820c67271caee9250a7311e64b5fd9ca5fba","proof":35293,"timestamp":1536296905.7136853,"transactions":[{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]},{"index":3,"previous_hash":"b6ea6eaf341b0d54a441d96487c1b6c939ed24152f1e3edb13f321d429be9c9a","proof":35089,"timestamp":1536297373.46994,"transactions":[{"amount":5,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"},{"amount":1,"recipient":"f4eb4686d2314f7b926472390af4a8d8","sender":"0"}]}]}
+
+#通过对3001节点挖矿4次，使之成为最长的链
+curl "http://localhost:3001/mine"
+{"index":2,"message":"new block forged","previous_hash":"014e9b638a7e9f15967bfbda1f697be93a5a8ce8f95f29b37bdd6d9e75d4bb19","proof":35293,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]}
+curl "http://localhost:3001/mine"
+{"index":3,"message":"new block forged","previous_hash":"1b7a90c1d7b1dbb9cab708035d3b22d25bc398e2688efa7171a942ff22a81740","proof":35089,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]}
+curl "http://localhost:3001/mine"
+{"index":4,"message":"new block forged","previous_hash":"ca5affcd2926f6209b8a35ff2a78fc52ec0c2b153f9b7ccea997726dbf5d6a03","proof":119678,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]}
+curl "http://localhost:3001/mine"
+{"index":5,"message":"new block forged","previous_hash":"430eac2b191b2690dcc6a8400a63f638d41da80674b6aa8905e050c87232f2a5","proof":146502,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]}
+curl "http://localhost:3001/chain"
+{"chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536297764.5623543,"transactions":[]},{"index":2,"previous_hash":"014e9b638a7e9f15967bfbda1f697be93a5a8ce8f95f29b37bdd6d9e75d4bb19","proof":35293,"timestamp":1536298287.1541448,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]},{"index":3,"previous_hash":"1b7a90c1d7b1dbb9cab708035d3b22d25bc398e2688efa7171a942ff22a81740","proof":35089,"timestamp":1536298288.8839533,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]},{"index":4,"previous_hash":"ca5affcd2926f6209b8a35ff2a78fc52ec0c2b153f9b7ccea997726dbf5d6a03","proof":119678,"timestamp":1536298290.0008492,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]},{"index":5,"previous_hash":"430eac2b191b2690dcc6a8400a63f638d41da80674b6aa8905e050c87232f2a5","proof":146502,"timestamp":1536298291.5808423,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]}],"length":5}
+
+#同步和解决冲突，目前3001下面的链应该是最长的，所以同步后，应该会被3001的链取代
+curl "http://localhost:3000/nodes/resolve"
+{"message":"our chain has been relplaced","new_chain":[{"index":1,"previous_hash":1,"proof":100,"timestamp":1536297764.5623543,"transactions":[]},{"index":2,"previous_hash":"014e9b638a7e9f15967bfbda1f697be93a5a8ce8f95f29b37bdd6d9e75d4bb19","proof":35293,"timestamp":1536298287.1541448,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]},{"index":3,"previous_hash":"1b7a90c1d7b1dbb9cab708035d3b22d25bc398e2688efa7171a942ff22a81740","proof":35089,"timestamp":1536298288.8839533,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]},{"index":4,"previous_hash":"ca5affcd2926f6209b8a35ff2a78fc52ec0c2b153f9b7ccea997726dbf5d6a03","proof":119678,"timestamp":1536298290.0008492,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]},{"index":5,"previous_hash":"430eac2b191b2690dcc6a8400a63f638d41da80674b6aa8905e050c87232f2a5","proof":146502,"timestamp":1536298291.5808423,"transactions":[{"amount":1,"recipient":"1f5fc2bb534249508697f8d7b090e5f1","sender":"0"}]}]}
+
+参考 原文地址
+https://yudao.me/2018/08/23/%E6%89%8B%E5%86%99%E4%B8%80%E4%B8%AA%E6%9D%A5%E5%AD%A6%E4%B9%A0%E5%8C%BA%E5%9D%97%E9%93%BE/
